@@ -1,0 +1,54 @@
+name: Daily ArXiv Agent
+
+on:
+  schedule:
+    # 每天 UTC 时间 00:00 运行 (相当于北京时间早上 08:00)
+    - cron: '0 0 * * *'
+  # 允许手动点击按钮触发测试
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    
+    # 设置时区为上海，方便日志查看
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      # 1. 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. 安装 Python 3.9
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip' # 开启缓存，加快安装速度
+
+      # 3. 安装依赖
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      # [新增步骤] 从 Secret 恢复用户画像文件
+      - name: Create User Profile from Secret
+        run: |
+          echo '${{ secrets.USER_PROFILE_JSON }}' > user_profile.json
+          
+      # 4. 运行脚本 (并将 Secrets 注入环境变量)
+      - name: Run ArXiv Agent
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          ARXIV_QUERY: ${{ secrets.ARXIV_QUERY }}
+          USER_INTEREST: ${{ secrets.USER_INTEREST }}
+          # 其他参数使用默认值，或者你也可以在这里覆盖
+          MAX_RESULTS: 15
+          ARXIV_DAYS: 1
+        run: python main.py
