@@ -35,8 +35,12 @@ jobs:
           
       # [新增步骤] 从 Secret 恢复用户画像文件
       - name: Create User Profile from Secret
+        env:
+          # 1. 将 Secret 映射到环境变量，而不是直接拼接在命令里
+          MY_PROFILE: ${{ secrets.USER_PROFILE_JSON }}
         run: |
-          echo '${{ secrets.USER_PROFILE_JSON }}' > user_profile.json
+          # 2. 使用 Python 读取环境变量并写入文件，绝对安全
+          python -c "import os; open('user_profile.json', 'w', encoding='utf-8').write(os.environ['MY_PROFILE'])"
           
       # 4. 运行脚本 (并将 Secrets 注入环境变量)
       - name: Run ArXiv Agent
