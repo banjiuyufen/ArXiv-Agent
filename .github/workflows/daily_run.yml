@@ -33,16 +33,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      # [新增步骤] 从 Secret 恢复用户画像文件
+      # 4. 生成用户画像 (注意：我们要把它写到 code 目录下，或者让脚本能读到)
+      # 为了保险，我们进入 code 目录去操作
       - name: Create User Profile from Secret
         env:
-          # 1. 将 Secret 映射到环境变量，而不是直接拼接在命令里
           MY_PROFILE: ${{ secrets.USER_PROFILE_JSON }}
         run: |
-          # 2. 使用 Python 读取环境变量并写入文件，绝对安全
-          python -c "import os; open('user_profile.json', 'w', encoding='utf-8').write(os.environ['MY_PROFILE'])"
+          # 确保 code 目录存在 (虽然拉取代码后肯定有，但为了保险)
+          # 这里我们将 json 写入到 code/user_profile.json，这样脚本在同级目录下能直接读取
+          python -c "import os; open('code/user_profile.json', 'w', encoding='utf-8').write(os.environ['MY_PROFILE'])"
           
-      # 4. 运行脚本 (并将 Secrets 注入环境变量)
+      # 5. 运行脚本 (并将 Secrets 注入环境变量)
       - name: Run ArXiv Agent
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -55,4 +56,5 @@ jobs:
           # 其他参数使用默认值，或者你也可以在这里覆盖
           MAX_RESULTS: 15
           ARXIV_DAYS: 1
+        working-directory: ./code
         run: python main.py
